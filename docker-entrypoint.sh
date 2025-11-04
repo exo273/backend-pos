@@ -32,6 +32,10 @@ print("No se pudo conectar a la base de datos")
 sys.exit(1)
 END
 
+# Crear migraciones si no existen
+echo "Generando migraciones..."
+python manage.py makemigrations --noinput
+
 # Aplicar migraciones
 echo "Aplicando migraciones..."
 python manage.py migrate --noinput --fake-initial

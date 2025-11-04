@@ -4,11 +4,11 @@ from .models import Zone, Table
 
 @admin.register(Zone)
 class ZoneAdmin(admin.ModelAdmin):
-    list_display = ['name', 'display_order', 'is_active', 'created_at']
+    list_display = ['name', 'is_active', 'created_at']
     list_filter = ['is_active', 'created_at']
     search_fields = ['name', 'description']
-    ordering = ['display_order', 'name']
-    list_editable = ['display_order', 'is_active']
+    ordering = ['name']
+    list_editable = ['is_active']
 
 
 @admin.register(Table)
@@ -16,7 +16,7 @@ class TableAdmin(admin.ModelAdmin):
     list_display = ['number', 'zone', 'capacity', 'status', 'is_active', 'created_at']
     list_filter = ['zone', 'status', 'is_active', 'created_at']
     search_fields = ['number']
-    ordering = ['zone__display_order', 'number']
+    ordering = ['zone__name', 'number']
     list_editable = ['status', 'is_active']
     
     def get_queryset(self, request):

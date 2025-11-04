@@ -32,3 +32,6 @@ pytz==2023.3
 
 # Validación y serialización
 pydantic==2.5.0
+
+# Imágenes
+Pillow==10.1.0

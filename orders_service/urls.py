@@ -20,4 +20,5 @@ urlpatterns = [
     path('api/pos/menu/', include('menu.urls')),
     path('api/pos/orders/', include('orders.urls')),
     path('api/pos/catalog/', include('catalog_mirror.urls')),
+    path('api/pos/config/', include('pos_config.urls')),
 ]

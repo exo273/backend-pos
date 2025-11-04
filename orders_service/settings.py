@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'menu',
     'orders',
     'catalog_mirror',
+    'pos_config',
 ]
 
 MIDDLEWARE = [

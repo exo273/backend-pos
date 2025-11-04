@@ -30,7 +30,7 @@ class ZoneViewSet(viewsets.ModelViewSet):
         if is_active is not None:
             queryset = queryset.filter(is_active=is_active.lower() == 'true')
         
-        return queryset.order_by('display_order', 'name')
+        return queryset.order_by('name')
 
     @action(detail=True, methods=['get'])
     def tables(self, request, pk=None):
@@ -94,7 +94,7 @@ class TableViewSet(viewsets.ModelViewSet):
         if is_active is not None:
             queryset = queryset.filter(is_active=is_active.lower() == 'true')
         
-        return queryset.order_by('zone__display_order', 'number')
+        return queryset.order_by('zone__name', 'number')
 
     @action(detail=True, methods=['post'])
     def update_status(self, request, pk=None):

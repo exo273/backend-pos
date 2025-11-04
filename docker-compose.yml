@@ -1,31 +1,59 @@
-version: '3.8'
+version: '3.8'version: '3.8'
 
-services:
-  # Base de datos MySQL para POS
-  db:
-    image: mariadb:10.11
-    container_name: pos_db
-    restart: always
-    environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password_change_me}
-      MYSQL_DATABASE: ${DB_NAME:-db_pos}
-      MYSQL_USER: ${DB_USER:-pos_user}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-pos_password_change_me}
-    volumes:
-      - pos_db_data:/var/lib/mysql
-    ports:
-      - "3307:3306"
-    networks:
-      - pos_network
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
 
-  # Redis para caché, Celery y Channels
-  redis:
-    image: redis:7-alpine
+
+services:services:
+
+  app:  # Base de datos MySQL para POS
+
+    build:  db:
+
+      context: .    image: mariadb:10.11
+
+      dockerfile: Dockerfile    container_name: pos_db
+
+    container_name: backend-pos    restart: always
+
+    restart: unless-stopped    environment:
+
+    environment:      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password_change_me}
+
+      - DEBUG=${DEBUG:-False}      MYSQL_DATABASE: ${DB_NAME:-db_pos}
+
+      - SECRET_KEY=${SECRET_KEY}      MYSQL_USER: ${DB_USER:-pos_user}
+
+      - DB_NAME=${DB_NAME:-sig_pos}      MYSQL_PASSWORD: ${DB_PASSWORD:-pos_password_change_me}
+
+      - DB_USER=${DB_USER:-siguser}    volumes:
+
+      - DB_PASSWORD=${DB_PASSWORD}      - pos_db_data:/var/lib/mysql
+
+      - DB_HOST=${DB_HOST:-restaurant-db}    ports:
+
+      - DB_PORT=${DB_PORT:-3306}      - "3307:3306"
+
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}    networks:
+
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}      - pos_network
+
+    ports:    healthcheck:
+
+      - "8002:8002"      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+
+    command: gunicorn pos_service.wsgi:application --bind 0.0.0.0:8002 --workers 2 --timeout 120      interval: 10s
+
+    networks:      timeout: 5s
+
+      - restaurant-network      retries: 5
+
+
+
+networks:  # Redis para caché, Celery y Channels
+
+  restaurant-network:  redis:
+
+    external: true    image: redis:7-alpine
+
     container_name: pos_redis
     restart: always
     ports:

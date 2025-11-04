@@ -1,32 +1,61 @@
-version: '3.8'version: '3.8'
+version: '3.8'version: '3.8'version: '3.8'
 
 
 
-services:services:
+services:
 
-  app:  # Base de datos MySQL para POS
+  app:
 
-    build:  db:
+    build:services:services:
 
-      context: .    image: mariadb:10.11
+      context: .
 
-      dockerfile: Dockerfile    container_name: pos_db
+      dockerfile: Dockerfile  app:  # Base de datos MySQL para POS
 
-    container_name: backend-pos    restart: always
+    container_name: backend-pos
 
-    restart: unless-stopped    environment:
+    restart: unless-stopped    build:  db:
 
-    environment:      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password_change_me}
+    environment:
 
-      - DEBUG=${DEBUG:-False}      MYSQL_DATABASE: ${DB_NAME:-db_pos}
+      - DEBUG=${DEBUG:-False}      context: .    image: mariadb:10.11
 
-      - SECRET_KEY=${SECRET_KEY}      MYSQL_USER: ${DB_USER:-pos_user}
+      - SECRET_KEY=${SECRET_KEY}
+
+      - DB_NAME=${DB_NAME:-sig_pos}      dockerfile: Dockerfile    container_name: pos_db
+
+      - DB_USER=${DB_USER:-siguser}
+
+      - DB_PASSWORD=${DB_PASSWORD}    container_name: backend-pos    restart: always
+
+      - DB_HOST=${DB_HOST:-restaurant-db}
+
+      - DB_PORT=${DB_PORT:-3306}    restart: unless-stopped    environment:
+
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS}
+
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}    environment:      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password_change_me}
+
+    ports:
+
+      - "8002:8002"      - DEBUG=${DEBUG:-False}      MYSQL_DATABASE: ${DB_NAME:-db_pos}
+
+    command: gunicorn pos_service.wsgi:application --bind 0.0.0.0:8002 --workers 2 --timeout 120
+
+    networks:      - SECRET_KEY=${SECRET_KEY}      MYSQL_USER: ${DB_USER:-pos_user}
+
+      - restaurant-network
 
       - DB_NAME=${DB_NAME:-sig_pos}      MYSQL_PASSWORD: ${DB_PASSWORD:-pos_password_change_me}
 
-      - DB_USER=${DB_USER:-siguser}    volumes:
+networks:
 
-      - DB_PASSWORD=${DB_PASSWORD}      - pos_db_data:/var/lib/mysql
+  restaurant-network:      - DB_USER=${DB_USER:-siguser}    volumes:
+
+    driver: bridge
+
+    name: restaurant-network      - DB_PASSWORD=${DB_PASSWORD}      - pos_db_data:/var/lib/mysql
+
 
       - DB_HOST=${DB_HOST:-restaurant-db}    ports:
 

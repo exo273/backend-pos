@@ -1,0 +1,34 @@
+# Django y REST Framework
+Django==4.2.7
+djangorestframework==3.14.0
+django-cors-headers==4.3.0
+django-filter==23.3
+
+# Base de datos
+mysqlclient==2.2.0
+
+# Autenticación JWT
+djangorestframework-simplejwt==5.3.0
+
+# Celery y Message Broker
+celery==5.3.4
+redis==5.0.1
+kombu==5.3.4
+
+# Django Channels para WebSockets (tiempo real)
+channels==4.0.0
+channels-redis==4.1.0
+daphne==4.0.0
+
+# Variables de entorno
+python-dotenv==1.0.0
+
+# Servidor WSGI
+gunicorn==21.2.0
+
+# Utilidades
+python-dateutil==2.8.2
+pytz==2023.3
+
+# Validación y serialización
+pydantic==2.5.0

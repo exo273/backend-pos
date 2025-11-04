@@ -1,0 +1,212 @@
+version: '3.8'
+
+services:
+  # Base de datos MySQL para POS
+  db:
+    image: mariadb:10.11
+    container_name: pos_db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_password_change_me}
+      MYSQL_DATABASE: ${DB_NAME:-db_pos}
+      MYSQL_USER: ${DB_USER:-pos_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-pos_password_change_me}
+    volumes:
+      - pos_db_data:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    networks:
+      - pos_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis para caché, Celery y Channels
+  redis:
+    image: redis:7-alpine
+    container_name: pos_redis
+    restart: always
+    ports:
+      - "6380:6379"
+    volumes:
+      - pos_redis_data:/data
+    networks:
+      - pos_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # RabbitMQ para eventos entre microservicios
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: pos_rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-admin}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-admin_password_change_me}
+    ports:
+      - "5673:5672"   # AMQP
+      - "15673:15672" # Management UI
+    volumes:
+      - pos_rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - pos_network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Aplicación Django POS
+  django:
+    build: .
+    container_name: pos_django
+    restart: always
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py collectstatic --noinput &&
+             daphne -b 0.0.0.0 -p 8000 orders_service.asgi:application"
+    volumes:
+      - .:/app
+      - pos_static:/app/staticfiles
+      - pos_media:/app/media
+    ports:
+      - "8001:8000"
+    environment:
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - DB_ENGINE=django.db.backends.mysql
+      - DB_NAME=${DB_NAME:-db_pos}
+      - DB_USER=${DB_USER:-pos_user}
+      - DB_PASSWORD=${DB_PASSWORD:-pos_password_change_me}
+      - DB_HOST=db
+      - DB_PORT=3306
+      - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=${RABBITMQ_USER:-admin}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD:-admin_password_change_me}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-admin_password_change_me}@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - pos_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/admin/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Celery Worker para tareas asíncronas
+  celery_worker:
+    build: .
+    container_name: pos_celery_worker
+    restart: always
+    command: celery -A orders_service worker -l info
+    volumes:
+      - .:/app
+    environment:
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - DB_ENGINE=django.db.backends.mysql
+      - DB_NAME=${DB_NAME:-db_pos}
+      - DB_USER=${DB_USER:-pos_user}
+      - DB_PASSWORD=${DB_PASSWORD:-pos_password_change_me}
+      - DB_HOST=db
+      - DB_PORT=3306
+      - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=${RABBITMQ_USER:-admin}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD:-admin_password_change_me}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-admin_password_change_me}@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+    networks:
+      - pos_network
+
+  # Celery Beat para tareas programadas
+  celery_beat:
+    build: .
+    container_name: pos_celery_beat
+    restart: always
+    command: celery -A orders_service beat -l info
+    volumes:
+      - .:/app
+    environment:
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - DB_ENGINE=django.db.backends.mysql
+      - DB_NAME=${DB_NAME:-db_pos}
+      - DB_USER=${DB_USER:-pos_user}
+      - DB_PASSWORD=${DB_PASSWORD:-pos_password_change_me}
+      - DB_HOST=db
+      - DB_PORT=3306
+      - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=${RABBITMQ_USER:-admin}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD:-admin_password_change_me}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-admin_password_change_me}@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+    networks:
+      - pos_network
+
+  # Celery Worker dedicado para escuchar eventos del microservicio de operaciones
+  celery_event_listener:
+    build: .
+    container_name: pos_event_listener
+    restart: always
+    command: celery -A orders_service worker -Q pos_events -l info --concurrency=1
+    volumes:
+      - .:/app
+    environment:
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - DB_ENGINE=django.db.backends.mysql
+      - DB_NAME=${DB_NAME:-db_pos}
+      - DB_USER=${DB_USER:-pos_user}
+      - DB_PASSWORD=${DB_PASSWORD:-pos_password_change_me}
+      - DB_HOST=db
+      - DB_PORT=3306
+      - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=${RABBITMQ_USER:-admin}
+      - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD:-admin_password_change_me}
+      - CELERY_BROKER_URL=amqp://${RABBITMQ_USER:-admin}:${RABBITMQ_PASSWORD:-admin_password_change_me}@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/1
+    depends_on:
+      - db
+      - redis
+      - rabbitmq
+    networks:
+      - pos_network
+
+volumes:
+  pos_db_data:
+  pos_redis_data:
+  pos_rabbitmq_data:
+  pos_static:
+  pos_media:
+
+networks:
+  pos_network:
+    driver: bridge

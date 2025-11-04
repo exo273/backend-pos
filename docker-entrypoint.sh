@@ -17,7 +17,7 @@ while attempt < max_attempts:
         conn = MySQLdb.connect(
             host=os.environ.get('DB_HOST', 'localhost'),
             user=os.environ.get('DB_USER', 'root'),
-            password=os.environ.get('DB_PASS', ''),
+            password=os.environ.get('DB_PASSWORD', ''),
             port=int(os.environ.get('DB_PORT', 3306))
         )
         conn.close()

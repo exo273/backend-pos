@@ -51,6 +51,10 @@ class TableSerializer(serializers.ModelSerializer):
         # Mapear campos en español a inglés
         if 'numero' in data:
             data['number'] = data.pop('numero')
+        if 'zona' in data:
+            data['zone'] = data.pop('zona')
+        if 'capacidad' in data:
+            data['capacity'] = data.pop('capacidad')
         if 'posicion_x' in data:
             data['position_x'] = data.pop('posicion_x')
         if 'posicion_y' in data:
@@ -65,6 +69,8 @@ class TableSerializer(serializers.ModelSerializer):
         """Agregar alias en la respuesta para compatibilidad con frontend"""
         data = super().to_representation(instance)
         data['numero'] = data['number']
+        data['zona'] = data['zone']
+        data['capacidad'] = data['capacity']
         data['posicion_x'] = data.get('position_x')
         data['posicion_y'] = data.get('position_y')
         return data

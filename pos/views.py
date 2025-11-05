@@ -3,8 +3,11 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.db.models import Q, Count
+import logging
 from .models import Zone, Table
 from .serializers import ZoneSerializer, TableSerializer, TableStatusUpdateSerializer
+
+logger = logging.getLogger(__name__)
 
 
 class ZoneViewSet(viewsets.ModelViewSet):
@@ -75,6 +78,23 @@ class TableViewSet(viewsets.ModelViewSet):
     queryset = Table.objects.all()
     serializer_class = TableSerializer
     permission_classes = [IsAuthenticated]
+
+    def create(self, request, *args, **kwargs):
+        """Crear una nueva mesa con logging"""
+        logger.info(f"Intentando crear mesa con datos: {request.data}")
+        
+        try:
+            serializer = self.get_serializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            logger.info(f"Mesa creada exitosamente: {serializer.data}")
+            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+        except Exception as e:
+            logger.error(f"Error al crear mesa: {str(e)}", exc_info=True)
+            if hasattr(e, 'detail'):
+                logger.error(f"Detalle del error: {e.detail}")
+            raise
 
     def get_queryset(self):
         queryset = Table.objects.select_related('zone').all()

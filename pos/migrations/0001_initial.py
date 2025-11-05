@@ -1,4 +1,5 @@
-# Generated manually on 2025-11-05
+# Generated manually based on production database
+# This migration already exists in production
 
 from django.db import migrations, models
 import django.db.models.deletion
@@ -38,8 +39,6 @@ class Migration(migrations.Migration):
                 ('status', models.CharField(choices=[('available', 'Disponible'), ('occupied', 'Ocupada'), ('reserved', 'Reservada')], default='available', max_length=20, verbose_name='Estado')),
                 ('position_x', models.IntegerField(blank=True, help_text='Posición X en la cuadrícula', null=True, verbose_name='Posición X')),
                 ('position_y', models.IntegerField(blank=True, help_text='Posición Y en la cuadrícula', null=True, verbose_name='Posición Y')),
-                ('width', models.IntegerField(default=1, help_text='Ancho en celdas de cuadrícula', verbose_name='Ancho')),
-                ('height', models.IntegerField(default=1, help_text='Alto en celdas de cuadrícula', verbose_name='Alto')),
                 ('is_active', models.BooleanField(default=True, verbose_name='Activo')),
                 ('created_at', models.DateTimeField(auto_now_add=True, verbose_name='Fecha de creación')),
                 ('updated_at', models.DateTimeField(auto_now=True, verbose_name='Fecha de actualización')),

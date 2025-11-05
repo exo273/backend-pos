@@ -1,23 +1,54 @@
 # Generated manually on 2025-11-05
 
-from django.db import migrations, models
+from django.db import migrations
+
+
+def add_width_height_columns(apps, schema_editor):
+    """Agregar columnas width y height si no existen"""
+    with schema_editor.connection.cursor() as cursor:
+        # Verificar si las columnas ya existen
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'tables'
+            AND COLUMN_NAME IN ('width', 'height')
+        """)
+        existing_columns = cursor.fetchone()[0]
+        
+        # Solo agregar si no existen
+        if existing_columns == 0:
+            cursor.execute("""
+                ALTER TABLE tables
+                ADD COLUMN width INT NOT NULL DEFAULT 1 COMMENT 'Ancho en celdas de cuadrícula',
+                ADD COLUMN height INT NOT NULL DEFAULT 1 COMMENT 'Alto en celdas de cuadrícula'
+            """)
+        elif existing_columns == 1:
+            # Verificar cuál existe y agregar la que falta
+            cursor.execute("""
+                SELECT COLUMN_NAME
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'tables'
+                AND COLUMN_NAME IN ('width', 'height')
+            """)
+            existing = cursor.fetchone()[0]
+            if existing == 'width':
+                cursor.execute("""
+                    ALTER TABLE tables
+                    ADD COLUMN height INT NOT NULL DEFAULT 1 COMMENT 'Alto en celdas de cuadrícula'
+                """)
+            else:
+                cursor.execute("""
+                    ALTER TABLE tables
+                    ADD COLUMN width INT NOT NULL DEFAULT 1 COMMENT 'Ancho en celdas de cuadrícula'
+                """)
 
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('pos', '0004_remove_table_unique_table_number_per_zone_and_more'),
-    ]
-
+    dependencies = []  # Sin dependencias para evitar conflictos
+    
     operations = [
-        migrations.AddField(
-            model_name='table',
-            name='width',
-            field=models.IntegerField(default=1, help_text='Ancho en celdas de cuadrícula', verbose_name='Ancho'),
-        ),
-        migrations.AddField(
-            model_name='table',
-            name='height',
-            field=models.IntegerField(default=1, help_text='Alto en celdas de cuadrícula', verbose_name='Alto'),
-        ),
+        migrations.RunPython(add_width_height_columns, migrations.RunPython.noop),
     ]

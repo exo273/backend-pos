@@ -4,8 +4,21 @@ from django.db import migrations
 
 
 def add_width_height_columns(apps, schema_editor):
-    """Agregar columnas width y height si no existen"""
+    """Agregar columnas width y height si no existen y la tabla existe"""
     with schema_editor.connection.cursor() as cursor:
+        # Primero verificar si la tabla 'tables' existe
+        cursor.execute("""
+            SELECT COUNT(*)
+            FROM information_schema.TABLES
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'tables'
+        """)
+        table_exists = cursor.fetchone()[0] > 0
+        
+        # Si la tabla no existe, salir sin hacer nada (las migraciones anteriores la crearán)
+        if not table_exists:
+            return
+        
         # Verificar si las columnas ya existen
         cursor.execute("""
             SELECT COUNT(*)

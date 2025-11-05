@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('pos', '0002_remove_table_unique_table_number_per_zone_and_more'),
+        ('pos', '0004_remove_table_unique_table_number_per_zone_and_more'),
     ]
 
     operations = [

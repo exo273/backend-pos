@@ -42,7 +42,7 @@ class TableSerializer(serializers.ModelSerializer):
     class Meta:
         model = Table
         fields = ['id', 'zone', 'zone_name', 'number', 'capacity', 'status', 
-                  'position_x', 'position_y',
+                  'position_x', 'position_y', 'width', 'height',
                   'current_order', 'is_active', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
 
@@ -59,9 +59,11 @@ class TableSerializer(serializers.ModelSerializer):
             data['position_x'] = data.pop('posicion_x')
         if 'posicion_y' in data:
             data['position_y'] = data.pop('posicion_y')
+        if 'ancho' in data:
+            data['width'] = data.pop('ancho')
+        if 'alto' in data:
+            data['height'] = data.pop('alto')
         # Eliminar campos que no están en el modelo
-        data.pop('ancho', None)
-        data.pop('alto', None)
         data.pop('forma', None)
         return super().to_internal_value(data)
 
@@ -73,6 +75,8 @@ class TableSerializer(serializers.ModelSerializer):
         data['capacidad'] = data['capacity']
         data['posicion_x'] = data.get('position_x')
         data['posicion_y'] = data.get('position_y')
+        data['ancho'] = data.get('width', 1)
+        data['alto'] = data.get('height', 1)
         return data
 
     def get_current_order(self, obj):

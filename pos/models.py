@@ -65,6 +65,16 @@ class Table(models.Model):
         verbose_name="Posición Y",
         help_text="Para el editor visual"
     )
+    width = models.IntegerField(
+        default=1,
+        verbose_name="Ancho",
+        help_text="Ancho en celdas de cuadrícula"
+    )
+    height = models.IntegerField(
+        default=1,
+        verbose_name="Alto",
+        help_text="Alto en celdas de cuadrícula"
+    )
     is_active = models.BooleanField(default=True, verbose_name="Activa")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

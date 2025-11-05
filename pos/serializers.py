@@ -5,15 +5,28 @@ from .models import Zone, Table
 class ZoneSerializer(serializers.ModelSerializer):
     tables_count = serializers.SerializerMethodField()
     available_tables = serializers.SerializerMethodField()
-    # Alias para compatibilidad con frontend
-    nombre = serializers.CharField(source='name', required=False)
-    descripcion = serializers.CharField(source='description', required=False, allow_blank=True)
 
     class Meta:
         model = Zone
-        fields = ['id', 'name', 'nombre', 'description', 'descripcion', 'is_active', 
+        fields = ['id', 'name', 'description', 'is_active', 
                   'tables_count', 'available_tables', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
+
+    def to_internal_value(self, data):
+        """Convertir campos del frontend al formato del backend"""
+        # Mapear nombre -> name y descripcion -> description si vienen del frontend
+        if 'nombre' in data:
+            data['name'] = data.pop('nombre')
+        if 'descripcion' in data:
+            data['description'] = data.pop('descripcion')
+        return super().to_internal_value(data)
+
+    def to_representation(self, instance):
+        """Agregar alias en la respuesta para compatibilidad con frontend"""
+        data = super().to_representation(instance)
+        data['nombre'] = data['name']
+        data['descripcion'] = data['description']
+        return data
 
     def get_tables_count(self, obj):
         return obj.tables.count()
@@ -25,22 +38,36 @@ class ZoneSerializer(serializers.ModelSerializer):
 class TableSerializer(serializers.ModelSerializer):
     zone_name = serializers.CharField(source='zone.name', read_only=True)
     current_order = serializers.SerializerMethodField()
-    # Alias para compatibilidad con frontend
-    numero = serializers.CharField(source='number', required=False)
-    posicion_x = serializers.IntegerField(source='position_x', required=False, allow_null=True)
-    posicion_y = serializers.IntegerField(source='position_y', required=False, allow_null=True)
-    # Campos que no están en el modelo pero el frontend puede enviar (los ignoramos)
-    ancho = serializers.IntegerField(required=False, write_only=True)
-    alto = serializers.IntegerField(required=False, write_only=True)
-    forma = serializers.CharField(required=False, write_only=True, allow_blank=True)
 
     class Meta:
         model = Table
-        fields = ['id', 'zone', 'zone_name', 'number', 'numero', 'capacity', 'status', 
-                  'position_x', 'position_y', 'posicion_x', 'posicion_y',
-                  'ancho', 'alto', 'forma',
+        fields = ['id', 'zone', 'zone_name', 'number', 'capacity', 'status', 
+                  'position_x', 'position_y',
                   'current_order', 'is_active', 'created_at', 'updated_at']
         read_only_fields = ['created_at', 'updated_at']
+
+    def to_internal_value(self, data):
+        """Convertir campos del frontend al formato del backend"""
+        # Mapear campos en español a inglés
+        if 'numero' in data:
+            data['number'] = data.pop('numero')
+        if 'posicion_x' in data:
+            data['position_x'] = data.pop('posicion_x')
+        if 'posicion_y' in data:
+            data['position_y'] = data.pop('posicion_y')
+        # Eliminar campos que no están en el modelo
+        data.pop('ancho', None)
+        data.pop('alto', None)
+        data.pop('forma', None)
+        return super().to_internal_value(data)
+
+    def to_representation(self, instance):
+        """Agregar alias en la respuesta para compatibilidad con frontend"""
+        data = super().to_representation(instance)
+        data['numero'] = data['number']
+        data['posicion_x'] = data.get('position_x')
+        data['posicion_y'] = data.get('position_y')
+        return data
 
     def get_current_order(self, obj):
         # Obtener la orden activa actual de la mesa

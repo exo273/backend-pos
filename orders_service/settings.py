@@ -19,7 +19,11 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-default-key-change-this')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+# ALLOWED_HOSTS: Agregar el dominio de producción y localhost
+ALLOWED_HOSTS = os.getenv(
+    'ALLOWED_HOSTS',
+    'localhost,127.0.0.1,api.kvernicola.cl,kvernicola.cl,*.kvernicola.cl'
+).split(',')
 
 # Application definition
 INSTALLED_APPS = [
